@@ -1092,7 +1092,14 @@ sub _ponder_pod {
     "=pod directives shouldn't be over one line long!  Ignoring all "
      . (@$para - 2) . " lines of content"
   ) if @$para > 3;
-  # Content is always ignored.
+
+  $self->{'content_seen'} ||= 1; # should this be here?
+
+  # Content is always ignored, but trigger an event for completeness
+  $self->_handle_element_start( my $scratch = 'pod', $para->[1] );
+  $self->_handle_text( $para->[2] );
+  $self->_handle_element_end( $scratch = 'pod' );
+
   return;
 }
 
