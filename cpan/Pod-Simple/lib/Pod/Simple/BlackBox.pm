@@ -1093,14 +1093,16 @@ sub _ponder_pod {
      . (@$para - 2) . " lines of content"
   ) if @$para > 3;
 
-  # The surrounding methods set content_seen, so let us remain consistent
-  # I do not know why it was not here before -- should it not be here?
-  $self->{'content_seen'} ||= 1;
+  # Content ignored unless 'pod_handler' is set
+  if (my $pod_handler = $self->{'pod_handler'}) {
+      my ($line_num, $line) = map $_, $para->[1]{'start_line'}, $para->[2];
+      $line = $line eq '' ? "=pod" : "=pod $line"; # imitate cut_handler output
+      $pod_handler->($line, $line_num, $self);
+  }
 
-  # Content is always ignored, but trigger an event for completeness
-  $self->_handle_element_start( my $scratch = 'pod', $para->[1] );
-  $self->_handle_text( $para->[2] );
-  $self->_handle_element_end( $scratch = 'pod' );
+  # The surrounding methods set content_seen, so let us remain consistent.
+  # I do not know why it was not here before -- should it not be here?
+  # $self->{'content_seen'} ||= 1;
 
   return;
 }
