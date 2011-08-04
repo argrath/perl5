@@ -1781,7 +1781,11 @@ sub _treelet_from_formatting_codes {
     } elsif(defined $6) {
       DEBUG > 3 and print "Found stuff \"$6\"\n";
       push @{ $lineage[-1] }, $6;
-      
+      # take note of the raw, original text of an L<> fcode
+      if ($lineage[-1][0] eq 'L') {
+        $lineage[-1][1]{'raw'} = $6;
+      }
+
     } else {
       # should never ever ever ever happen
       DEBUG and print "AYYAYAAAAA at line ", __LINE__, "\n";
