@@ -1655,6 +1655,8 @@ sub _treelet_from_formatting_codes {
   my @stack;
   my @lineage = ($treelet);
   my $raw = ''; # raw content of L<> fcode before splitting/processing
+    # XXX 'raw' is not 100% accurate: all surrounding whitespace is condensed
+    # into just 1 ' '. Is this the regex's doing or 'raw's?
   my $inL = 0;
 
   DEBUG > 4 and print "Paragraph:\n$para\n\n";
@@ -1716,55 +1718,48 @@ sub _treelet_from_formatting_codes {
     /xgo
   ) {
     DEBUG > 4 and print "\nParagraphic tokenstack = (@stack)\n";
-    # so we can use regex and not worry about clobbering $1-$6
-    my $one   = $1 if defined $1;
-    my $two   = $2 if defined $2;
-    my $three = $3 if defined $3;
-    my $four  = $4 if defined $4;
-    my $five  = $5 if defined $5;
-    my $six   = $6 if defined $6;
-    if(defined $one) {
-      if(defined $two) {
-        DEBUG > 3 and print "Found complex start-text code \"$one\"\n";
-        push @stack, length($two) + 1; 
+    if(defined $1) {
+      if(defined $2) {
+        DEBUG > 3 and print "Found complex start-text code \"$1\"\n";
+        push @stack, length($2) + 1; 
           # length of the necessary complex end-code string
       } else {
-        DEBUG > 3 and print "Found simple start-text code \"$one\"\n";
+        DEBUG > 3 and print "Found simple start-text code \"$1\"\n";
         push @stack, 0;  # signal that we're looking for simple
       }
-      push @lineage, [ substr($one,0,1), {}, ];  # new node object
+      push @lineage, [ substr($1,0,1), {}, ];  # new node object
       push @{ $lineage[-2] }, $lineage[-1];
-      if ($one =~ /^L/) {
-        $raw = $inL ? $raw.$one : ''; # reset raw content accumulator
+      if ('L' eq substr($1,0,1)) {
+        $raw = $inL ? $raw.$1 : ''; # reset raw content accumulator
         $inL = 1;
       } else {
-        $raw .= $one if $inL;
+        $raw .= $1 if $inL;
       }
 
-    } elsif(defined $four) {
-      DEBUG > 3 and print "Found apparent complex end-text code \"$three$four\"\n";
+    } elsif(defined $4) {
+      DEBUG > 3 and print "Found apparent complex end-text code \"$3$4\"\n";
       # This is where it gets messy...
       if(! @stack) {
         # We saw " >>>>" but needed nothing.  This is ALL just stuff then.
         DEBUG > 4 and print " But it's really just stuff.\n";
-        push @{ $lineage[-1] }, $three, $four;
+        push @{ $lineage[-1] }, $3, $4;
         next;
       } elsif(!$stack[-1]) {
         # We saw " >>>>" but needed only ">".  Back pos up.
         DEBUG > 4 and print " And that's more than we needed to close simple.\n";
-        push @{ $lineage[-1] }, $three; # That was a for-real space, too.
-        pos($para) = pos($para) - length($four) + 1;
-      } elsif($stack[-1] == length($four)) {
+        push @{ $lineage[-1] }, $3; # That was a for-real space, too.
+        pos($para) = pos($para) - length($4) + 1;
+      } elsif($stack[-1] == length($4)) {
         # We found " >>>>", and it was exactly what we needed.  Commonest case.
         DEBUG > 4 and print " And that's exactly what we needed to close complex.\n";
-      } elsif($stack[-1] < length($four)) {
+      } elsif($stack[-1] < length($4)) {
         # We saw " >>>>" but needed only " >>".  Back pos up.
         DEBUG > 4 and print " And that's more than we needed to close complex.\n";
-        pos($para) = pos($para) - length($four) + $stack[-1];
+        pos($para) = pos($para) - length($4) + $stack[-1];
       } else {
         # We saw " >>>>" but needed " >>>>>>".  So this is all just stuff!
         DEBUG > 4 and print " But it's really just stuff, because we needed more.\n";
-        push @{ $lineage[-1] }, $three, $four;
+        push @{ $lineage[-1] }, $3, $4;
         next;
       }
       #print "\nHOOBOY ", scalar(@{$lineage[-1]}), "!!!\n";
@@ -1781,16 +1776,16 @@ sub _treelet_from_formatting_codes {
           $lineage[-1][-1][1]{'raw'} = $raw
         }
       }
-      $raw .= $three.$four if $inL;
+      $raw .= $3.$4 if $inL;
       
-    } elsif(defined $five) {
-      DEBUG > 3 and print "Found apparent simple end-text code \"$five\"\n";
+    } elsif(defined $5) {
+      DEBUG > 3 and print "Found apparent simple end-text code \"$5\"\n";
 
       if(@stack and ! $stack[-1]) {
         # We're indeed expecting a simple end-code
         DEBUG > 4 and print " It's indeed an end-code.\n";
 
-        if(length($five) == 2) { # There was a space there: " >"
+        if(length($5) == 2) { # There was a space there: " >"
           push @{ $lineage[-1] }, ' ';
         } elsif( 2 == @{ $lineage[-1] } ) { # Closing a childless element
           push @{ $lineage[-1] }, ''; # keep it from being really childless
@@ -1800,7 +1795,7 @@ sub _treelet_from_formatting_codes {
         pop @lineage;
       } else {
         DEBUG > 4 and print " It's just stuff.\n";
-        push @{ $lineage[-1] }, $five;
+        push @{ $lineage[-1] }, $5;
       }
 
       unless (@stack) { # not in an L if there are no open fcodes
@@ -1809,12 +1804,12 @@ sub _treelet_from_formatting_codes {
           $lineage[-1][-1][1]{'raw'} = $raw
         }
       }
-      $raw .= $five if $inL;
+      $raw .= $5 if $inL;
 
-    } elsif(defined $six) {
-      DEBUG > 3 and print "Found stuff \"$six\"\n";
-      push @{ $lineage[-1] }, $six;
-      $raw .= $six if $inL;
+    } elsif(defined $6) {
+      DEBUG > 3 and print "Found stuff \"$6\"\n";
+      push @{ $lineage[-1] }, $6;
+      $raw .= $6 if $inL;
         # XXX does not capture multiplace whitespaces -- 'raw' ends up with
         #     at most 1 leading/trailing whitespace, why not all of it?
 
