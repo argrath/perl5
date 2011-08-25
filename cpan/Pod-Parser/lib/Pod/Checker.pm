@@ -10,7 +10,6 @@
 package Pod::Checker;
 use strict;
 use warnings;
-use Data::Dumper
 
 our $VERSION = '1.45';  ## Current version of this package
 use 5.005;

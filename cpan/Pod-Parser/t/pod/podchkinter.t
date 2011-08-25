@@ -2,7 +2,6 @@ use warnings;
 use strict;
 
 use Pod::Checker;
-use Data::Dumper;
 use Test::More;
 BEGIN { plan tests => 104 };
 
