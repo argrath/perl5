@@ -13,7 +13,7 @@ use warnings;
 use Data::Dumper
 
 our $VERSION = '1.45';  ## Current version of this package
-use 5.14.0;
+use 5.005;
 
 use Pod::ParseUtils; ## for hyperlinks and lists
 
@@ -695,7 +695,7 @@ sub _open_list { # keep track of =open/=back blocks
         -indent => $indent,
         -start  => $line,
         -type   => $type,
-        -file   => $file // $self->source_filename);
+        -file   => (defined $file ? $file : $self->source_filename));
     unshift (@{$self->{'_list_stack'}}, $list);
     $list;
 }
@@ -707,7 +707,7 @@ sub _check_fcode {
     # Check for an fcode inside another of the same fcode
     # XXX line number is the line of the start of the paragraph that the warning
     # is in, not the line that the warning is on. Fix this
-    if ($inner ~~ $outers) {
+    if (grep {; $inner eq $_ } @$outers) {
         $self->poderror({ -line => $self->{'_line'},
                           -severity => 'WARNING',
                           -msg => "nested commands $inner<...$inner<...>...>"});
@@ -885,12 +885,12 @@ sub end_item {
 sub start_for { # =for and =begin directives
     my ($self, $flags) = @_;
     $self->_init_event($flags);
-    push $self->{'_begin_stack'}, [$self->{'_line'}, $flags->{'target'}];
+    push @{$self->{'_begin_stack'}}, [$self->{'_line'}, $flags->{'target'}];
 }
 
 sub end_for {
     my ($self, $flags) = @_;
-    my ($line, $target) = @{pop $self->{'_begin_stack'}};
+    my ($line, $target) = @{pop @{$self->{'_begin_stack'}}};
     if ($flags->{'fake-closer'}) { # meaning Pod::Simple generated this =end
         $self->poderror({ -line => $line,
                           -severity => 'ERROR',
@@ -938,7 +938,7 @@ sub end_Document {
     }
 
     if ($self->{'-warnings'} > 1 ) {
-        while (my ($node, $count) = each $self->{'_unique_nodes'}) {
+        while (my ($node, $count) = each %{$self->{'_unique_nodes'}}) {
             if ($count > 1) { # not unique
                 $self->poderror({
                     -line => '-',
@@ -1010,12 +1010,12 @@ sub start_X {
     $self->start_fcode('X');
     # keep track of where X<> starts in the paragraph
     # (this is a stack so nested X<>s are handled correctly)
-    push $self->{'_fcode_pos'}, length $self->{'_thispara'};
+    push @{$self->{'_fcode_pos'}}, length $self->{'_thispara'};
 }
 sub end_X {
     my $self = shift;
     # extract contents of X<> and replace with ''
-    my $start = pop $self->{'_fcode_pos'}; # start at the beginning of X<>
+    my $start = pop @{$self->{'_fcode_pos'}}; # start at the beginning of X<>
     my $end = length($self->{'_thispara'}) - $start; # end at end of X<>
     my $x = substr($self->{'_thispara'}, $start, $end, '');
     unless ($x) {

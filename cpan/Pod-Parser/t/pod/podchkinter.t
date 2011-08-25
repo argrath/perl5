@@ -1,6 +1,5 @@
 use warnings;
 use strict;
-use 5.14.0;
 
 use Pod::Checker;
 use Data::Dumper;
@@ -50,11 +49,11 @@ while (my ($i, $pod) = each @$pods) {
     # expected results
     my ($in, $name, $node, $idx, $hlnk, $errs, $warn) = 
         @{$pod}{qw/in name node idx hlnk errs warn/};
-    $node //= [];
-    $idx  //= [];
-    $hlnk //= [];
-    $errs //= 0;
-    $warn //= 0;
+    $node = [] unless defined $node;
+    $idx  = [] unless defined $idx;
+    $hlnk = [] unless defined $hlnk;
+    $errs = 0 unless defined $errs;
+    $warn = 0 unless defined $warn;
 
     # populate the infile
     open(my $infh, '>', $infile) or die $!;
