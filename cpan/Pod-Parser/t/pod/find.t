@@ -53,7 +53,6 @@ my %pods = pod_find($lib_dir);
 my $result = join(',', sort values %pods);
 print "### found $result\n";
 my $compare = join(',', sort qw(
-    Pod::Checker
     Pod::Find
     Pod::InputObjects
     Pod::ParseUtils
